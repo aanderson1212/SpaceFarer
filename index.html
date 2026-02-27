@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DnD SpaceFarer</title>
+<link rel="stylesheet" href="stylesheet.css">
+</head>
+
+<body>
+<div id="ui">
+  <button id="newShipBtn">+ New Ship</button>
+  <button id="deleteShipBtn">− Delete Ship</button>
+  <button id="toggleBandsBtn">Show All Movement Bands</button>
+  <button id="shipAim">Show Selected Ship's Weapon Bands</button>
+  <button id="toggleWepBandsBtn">Show All Weapon Bands</button>
+  <button id="clearBandsBtn">Clear Bands</button>
+
+</div>
+
+
+<div id="board"></div>
+<div id="info">Click a ship</div>
+<div id="debugInfo">Debug Info</div>
+
+<script>
+// CLASSES
+
+const CLASSES = {
+  Fighter: { bands: 4, image: "shipimage/1.png", size: 30 },
+  Frigate: { bands: 3, image: "shipimage/2.png", size: 50  },
+  Titan: { bands: 2, image: "shipimage/4.png", size: 80  }
+};
+
+const BAND_SIZE = 50; 
+
+// SHIPS
+const ships = [
+  { id: 1, x: 200, y: 300, class: "Fighter"},
+  { id: 2, x: 400, y: 300, class: "Frigate" },
+  { id: 3, x: 600, y: 300, class: "Titan" }
+];
+
+
+let selectedShip = null;
+let dragging = false;
+let startX = 0;
+let startY = 0;
+let bands = [];
+let showAllBands = false;
+let showWepBands = false;
+let bandMax = 5
+let nextShipId = 4;
+
+let debug = true //CHANGE TO FALSE BEFORE DIST
+
+const BAND_TYPES = {
+  MOVE: "move",
+  WEAPON: "weapon"
+};
+
+// MAIN
+
+const board = document.getElementById("board");
+const info = document.getElementById("info");
+if (debug) {
+  const debugInfo = document.getElementById("debugInfo");
+}
+
+ships.forEach(createShipElement);
+
+
+document.addEventListener("mousemove", e => {
+  if (!dragging || !selectedShip) return;
+
+  selectedShip.el.style.left = e.clientX - 18 + "px";
+  selectedShip.el.style.top = e.clientY - 18 + "px";
+});
+
+document.addEventListener("mouseup", () => {
+  if (!dragging || !selectedShip) return;
+
+  if (!withinRange(selectedShip)) {
+    selectedShip.el.style.left = startX + "px";
+    selectedShip.el.style.top = startY + "px";
+  } else {
+    selectedShip.x = selectedShip.el.offsetLeft;
+    selectedShip.y = selectedShip.el.offsetTop;
+  }
+  redrawAllBands();
+  dragging = false;
+});
+document.getElementById("newShipBtn").onclick = () => {
+  const cls = Object.keys(CLASSES)[Math.floor(Math.random() * 3)];
+
+  const ship = {
+    id: nextShipId++,
+    x: 300,
+    y: 300,
+    class: cls
+  };
+
+  ships.push(ship);
+  createShipElement(ship);
+};
+
+document.getElementById("deleteShipBtn").onclick = () => {
+  if (!selectedShip) return;
+
+  selectedShip.el.remove();
+  const index = ships.indexOf(selectedShip);
+  ships.splice(index, 1);
+  selectedShip = null;
+  info.textContent = "Click a ship";
+  clearBands();
+};
+
+document.getElementById("toggleBandsBtn").onclick = () => {
+  showAllBands = true;
+  showWepBands = false;
+  if(debug) {
+    debugInfo.textContent = "Show Movement Bands: " + showAllBands;
+  }
+  redrawAllBands();
+};
+
+document.getElementById("toggleWepBandsBtn").onclick = () => {
+  showWepBands = true;
+  showAllBands = false;
+  if(debug) {
+    debugInfo.textContent = "Show Weapon Bands: " + showWepBands;
+  }
+  redrawAllBands();
+};
+document.getElementById("clearBandsBtn").onclick = () => {
+  showAllBands = false
+  showWepBands = false
+  if(debug) {
+    debugInfo.textContent = "Movement Bands: " + showAllBands+ " " + "Weapon Bands: " + showWepBands;
+  }
+  clearBands();
+};
+document.getElementById("shipAim").onclick = () => {
+  clearBands();
+  drawBands(selectedShip, BAND_TYPES.WEAPON);
+}
+
+
+
+function selectShip(ship) {
+  ships.forEach(s => s.el.classList.remove("selected"));
+  ship.el.classList.add("selected");
+  selectedShip = ship;
+
+  info.textContent = `Class: ${ship.class} | Max Bands: ${CLASSES[ship.class].bands}`;
+}
+
+// SHIP RENDERING
+function createShipElement(ship) {
+  const el = document.createElement("div");
+  el.className = "ship";
+  el.style.left = ship.x + "px";
+  el.style.top = ship.y + "px";
+  el.style.backgroundImage = `url(${CLASSES[ship.class].image})`;
+  el.dataset.id = ship.id;
+
+  const img = new Image();
+  img.src = CLASSES[ship.class].image;
+  img.onload = () => {
+    const maxSize = 48;
+    const scale = Math.min(maxSize / img.width, maxSize / img.height);
+    el.style.width = CLASSES[ship.class].size + "px";
+    el.style.height = CLASSES[ship.class].size + "px";
+  };
+
+  board.appendChild(el);
+  ship.el = el;
+
+  el.addEventListener("mousedown", () => {
+    selectShip(ship);
+    dragging = true;
+    startX = ship.x;
+    startY = ship.y;
+    clearBands();
+    drawBands(ship, BAND_TYPES.MOVE);    
+  });
+}
+
+
+function drawBands(ship, type) {
+  let max;
+  if (type === BAND_TYPES.WEAPON) {
+    max = bandMax;
+  } else {
+    max = CLASSES[ship.class].bands;
+  }
+
+  for (let i = 1; i <= max; i++) {
+    const r = i * BAND_SIZE;
+
+    const ring = document.createElement("div");
+    ring.className = `band ${type}`;
+    ring.style.width = r * 2 + "px";
+    ring.style.height = r * 2 + "px";
+    ring.style.left = ship.x - r + "px";
+    ring.style.top = ship.y - r + "px";
+
+    board.appendChild(ring);
+    bands.push(ring);
+
+    let labelText;
+    if (type === BAND_TYPES.WEAPON) {
+      labelText = `Weapon ${i}`;
+    } else {
+      labelText = i === 1 ? "Engaged" : `Band ${i}`;
+    }
+
+    const label = document.createElement("div");
+    label.className = "band-label";
+    label.textContent = labelText;
+    label.style.left = ship.x + "px";
+    label.style.top = ship.y - r + "px";
+
+    board.appendChild(label);
+    bands.push(label);
+  }
+}
+function redrawAllBands() {
+  clearBands();
+
+  ships.forEach(ship => {
+    if (showAllBands) {
+      drawBands(ship, BAND_TYPES.MOVE);
+    }
+    if (showWepBands) {
+      drawBands(ship, BAND_TYPES.WEAPON);
+    }
+  });
+}
+
+function clearBands() {
+  bands.forEach(b => b.remove());
+  bands = [];
+}
+
+function withinRange(ship) {
+  const dx = ship.el.offsetLeft - startX;
+  const dy = ship.el.offsetTop - startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  return dist <= CLASSES[ship.class].bands * BAND_SIZE;
+}
+</script>
+
+</body>
+</html>
