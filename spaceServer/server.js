@@ -24,8 +24,7 @@ const server = http.createServer((req, res) => {
     ".css": "text/css",
     ".js": "application/javascript",
     ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".gif": "image/gif"
+    ".jpg": "image/jpeg"
   };
 
   const contentType = contentTypes[ext] || "application/octet-stream";
@@ -56,7 +55,7 @@ wss.on("connection", ws => {
     if (data.type === "stateUpdate") {
       gameState = data.state;
 
-      // Broadcast to everyone
+      // Broadcast
       wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
@@ -69,9 +68,6 @@ wss.on("connection", ws => {
   });
 });
 
-/* ===============================
-   START SERVER
-================================ */
 server.listen(8080, () => {
   console.log("Server running at http://localhost:8080");
 });
