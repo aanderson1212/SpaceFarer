@@ -48,6 +48,13 @@ function loadStateFromServer(state) {
   });
 
   redrawAllBands();
+  if (selectedShipId !== null) {
+    const ship = ships.find(s => s.id === selectedShipId);
+    if (ship && ship.el) {
+      ship.el.classList.add("selected");
+      selectedShip = ship;
+    }
+  }
 }
 // CLASSES
 
@@ -62,8 +69,8 @@ const CLASSES = {
 const BAND_SIZE = 50; 
 
 
-
 let selectedShip = null;
+let selectedShipId = null;
 let dragging = false;
 let startX = 0;
 let startY = 0;
@@ -73,7 +80,7 @@ let showWepBands = false;
 let bandMax = 5
 let nextShipId = 4;
 
-let debug = true //CHANGE TO FALSE BEFORE DIST
+let debug = true 
 
 const BAND_TYPES = {
   MOVE: "move",
@@ -81,21 +88,17 @@ const BAND_TYPES = {
 };
 
 // MAIN
-
 const board = document.getElementById("board");
 const info = document.getElementById("info");
 if (debug) {
   const debugInfo = document.getElementById("debugInfo");
 }
 
-
-
-
 document.addEventListener("mousemove", e => {
   if (!dragging || !selectedShip) return;
 
-  selectedShip.el.style.left = e.clientX - 18 + "px";
-  selectedShip.el.style.top = e.clientY - 18 + "px";
+  selectedShip.el.style.left = e.clientX + "px";
+  selectedShip.el.style.top = e.clientY + "px";
 });
 
 document.addEventListener("mouseup", () => {
@@ -198,10 +201,12 @@ document.getElementById("shipAim").onclick = () => {
 
 
 function selectShip(ship) {
-  ships.forEach(s => s.el.classList.remove("selected"));
-  ship.el.classList.add("selected");
-  selectedShip = ship;
+  selectedShipId = ship.id;
 
+  ships.forEach(s => s.el?.classList.remove("selected"));
+  ship.el.classList.add("selected");
+
+  selectedShip = ship;
   info.textContent = `Class: ${ship.class} | Max Bands: ${CLASSES[ship.class].bands}`;
 }
 
@@ -214,14 +219,8 @@ function createShipElement(ship) {
   el.style.backgroundImage = `url(${CLASSES[ship.class].image})`;
   el.dataset.id = ship.id;
 
-  const img = new Image();
-  img.src = CLASSES[ship.class].image;
-  img.onload = () => {
-    const maxSize = 48;
-    const scale = Math.min(maxSize / img.width, maxSize / img.height);
-    el.style.width = CLASSES[ship.class].size + "px";
-    el.style.height = CLASSES[ship.class].size + "px";
-  };
+  el.style.width = CLASSES[ship.class].size + "px";
+  el.style.height = CLASSES[ship.class].size + "px";
 
   board.appendChild(el);
   ship.el = el;
