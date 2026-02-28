@@ -23,7 +23,35 @@
 <div id="debugInfo">Debug Info</div>
 
 <script>
+//WEBSOCKET IP MAY NEED CHANGED PER BASIS IDK
+const socket = new WebSocket("192.168.1.17:8080");
+socket.onmessage = event => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === "init") {
+    loadStateFromServer(data.state);
+  }
+
+  if (data.type === "stateUpdate") {
+    loadStateFromServer(data.state);
+  }
+};
+function loadStateFromServer(state) {
+  clearBands();
+
+  ships.length = 0;
+  board.innerHTML = "";
+
+  state.ships.forEach(s => {
+    ships.push(s);
+    createShipElement(s);
+  });
+
+  redrawAllBands();
+}
 // CLASSES
+
+const ships = [];
 
 const CLASSES = {
   Fighter: { bands: 4, image: "shipimage/1.png", size: 30 },
@@ -33,12 +61,6 @@ const CLASSES = {
 
 const BAND_SIZE = 50; 
 
-// SHIPS
-const ships = [
-  { id: 1, x: 200, y: 300, class: "Fighter"},
-  { id: 2, x: 400, y: 300, class: "Frigate" },
-  { id: 3, x: 600, y: 300, class: "Titan" }
-];
 
 
 let selectedShip = null;
@@ -66,7 +88,7 @@ if (debug) {
   const debugInfo = document.getElementById("debugInfo");
 }
 
-ships.forEach(createShipElement);
+
 
 
 document.addEventListener("mousemove", e => {
@@ -88,6 +110,16 @@ document.addEventListener("mouseup", () => {
   }
   redrawAllBands();
   dragging = false;
+
+  socket.send(JSON.stringify({
+  type: "stateUpdate",
+  state: {
+    ships,
+    showAllBands,
+    showWepBands
+  }
+  }));
+
 });
 document.getElementById("newShipBtn").onclick = () => {
   const cls = Object.keys(CLASSES)[Math.floor(Math.random() * 3)];
@@ -101,6 +133,15 @@ document.getElementById("newShipBtn").onclick = () => {
 
   ships.push(ship);
   createShipElement(ship);
+
+  socket.send(JSON.stringify({
+  type: "stateUpdate",
+  state: {
+    ships,
+    showAllBands,
+    showWepBands
+  }
+  }));
 };
 
 document.getElementById("deleteShipBtn").onclick = () => {
@@ -112,6 +153,15 @@ document.getElementById("deleteShipBtn").onclick = () => {
   selectedShip = null;
   info.textContent = "Click a ship";
   clearBands();
+  
+  socket.send(JSON.stringify({
+  type: "stateUpdate",
+  state: {
+    ships,
+    showAllBands,
+    showWepBands
+  }
+  }));
 };
 
 document.getElementById("toggleBandsBtn").onclick = () => {
@@ -121,6 +171,7 @@ document.getElementById("toggleBandsBtn").onclick = () => {
     debugInfo.textContent = "Show Movement Bands: " + showAllBands;
   }
   redrawAllBands();
+  
 };
 
 document.getElementById("toggleWepBandsBtn").onclick = () => {
