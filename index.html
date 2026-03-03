@@ -23,7 +23,6 @@
 <div id="debugInfo">Debug Info</div>
 
 <script>
-//WEBSOCKET IP MAY NEED CHANGED PER BASIS IDK
 const socket = new WebSocket("192.168.1.17:8080");
 socket.onmessage = event => {
   const data = JSON.parse(event.data);
