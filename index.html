@@ -63,6 +63,13 @@ const CLASSES = {
   Frigate: { bands: 3, image: "shipimage/2.png", size: 50  },
   Titan: { bands: 2, image: "shipimage/4.png", size: 80  }
 };
+const BAND_LABELS = [
+  "Engaged",
+  "Close",
+  "Medium",
+  "Far",
+  "Extreme"
+];
 
 const BAND_SIZE = 50; 
 
@@ -172,7 +179,6 @@ document.getElementById("toggleBandsBtn").onclick = () => {
     debugInfo.textContent = "Show Movement Bands: " + showAllBands;
   }
   redrawAllBands();
-  
 };
 
 document.getElementById("toggleWepBandsBtn").onclick = () => {
@@ -256,11 +262,8 @@ function drawBands(ship, type) {
     bands.push(ring);
 
     let labelText;
-    if (type === BAND_TYPES.WEAPON) {
-      labelText = `Weapon ${i}`;
-    } else {
-      labelText = i === 1 ? "Engaged" : `Band ${i}`;
-    }
+    labelText = BAND_LABELS[i - 1] || `Band ${i}`;
+
 
     const label = document.createElement("div");
     label.className = "band-label";

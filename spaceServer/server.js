@@ -43,7 +43,7 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", ws => {
-  console.log("Connected")
+  console.log("Player Connected")
   ws.send(JSON.stringify({
     type: "init",
     state: gameState
