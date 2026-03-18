@@ -96,7 +96,6 @@ let showWepBands = false;
 let bandMax = 5
 let nextShipId = 4;
 
-let debug = true 
 
 const BAND_TYPES = {
   MOVE: "move",
@@ -105,12 +104,21 @@ const BAND_TYPES = {
 
 const shipDropdown = document.getElementById("shipType")
 
-// MAIN
+// MAIN START
 const board = document.getElementById("board");
 const info = document.getElementById("info");
-if (debug) {
-  const debugInfo = document.getElementById("debugInfo");
+const debugInfo = document.getElementById("debugInfo");
+
+// DEBUG //////////////////////////
+
+let debug = false // should be false
+
+if (debug === false){
+  debugInfo.style.display = "none"
 }
+///////////////////////////////////
+
+// EVENTS
 
 document.addEventListener("mousemove", e => {
   if (!dragging || !selectedShip) return;
@@ -131,15 +139,8 @@ document.addEventListener("mouseup", () => {
   }
   redrawAllBands();
   dragging = false;
-
-  socket.send(JSON.stringify({
-  type: "stateUpdate",
-  state: {
-    ships,
-    showAllBands,
-    showWepBands
-  }
-  }));
+ 
+  serverMessage();
 
 });
 document.getElementById("newShipBtn").onclick = () => {
@@ -157,19 +158,11 @@ document.getElementById("shipCreateBtn").onclick = () => {
     class: selectedshipType
   };
 
-
   ships.push(ship);
   createShipElement(ship);
   selectShip(ship);
 
-  socket.send(JSON.stringify({
-  type: "stateUpdate",
-  state: {
-    ships,
-    showAllBands,
-    showWepBands
-  }
-  }));
+  serverMessage();
 };
 
 
@@ -183,14 +176,7 @@ document.getElementById("deleteShipBtn").onclick = () => {
   info.textContent = "Click a ship";
   clearBands();
   
-  socket.send(JSON.stringify({
-  type: "stateUpdate",
-  state: {
-    ships,
-    showAllBands,
-    showWepBands
-  }
-  }));
+  serverMessage();
 };
 
 document.getElementById("toggleBandsBtn").onclick = () => {
@@ -222,6 +208,8 @@ document.getElementById("shipAim").onclick = () => {
   clearBands();
   drawBands(selectedShip, BAND_TYPES.WEAPON);
 }
+// MAIN END
+
 function toggleDisplay(id) {
   const el = document.getElementById(id);
 
@@ -242,6 +230,7 @@ function selectShip(ship) {
   selectedShip = ship;
   info.textContent = `Class: ${ship.class} | Max Bands: ${CLASSES[ship.class].bands}`;
 }
+
 
 // SHIP RENDERING
 function createShipElement(ship) {
@@ -328,6 +317,17 @@ function withinRange(ship) {
   const dist = Math.sqrt(dx * dx + dy * dy);
   return dist <= CLASSES[ship.class].bands * BAND_SIZE;
 }
+function serverMessage(){
+  socket.send(JSON.stringify({
+  type: "stateUpdate",
+  state: {
+    ships,
+    showAllBands,
+    showWepBands
+  }
+  }));
+}
+
 </script>
 
 </body>
