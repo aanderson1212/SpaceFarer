@@ -16,6 +16,17 @@
   <button id="clearBandsBtn">Clear Bands</button>
 </div>
 
+<div id="newShipBox" style="left: 300px;">
+  <label style="padding: 5px;">Ship Creator</label>
+  <hr>
+  <select id="shipType">
+    <option value="Fighter">Fighter</option>
+    <option value="Frigate">Frigate</option>
+    <option value="Titan">Titan</option>
+  </select>
+  <br><br>
+  <button id="shipCreateBtn">Create!</button>
+</div>
 
 <div id="board"></div>
 <div id="info">Click a ship</div>
@@ -92,6 +103,8 @@ const BAND_TYPES = {
   WEAPON: "weapon"
 };
 
+const shipDropdown = document.getElementById("shipType")
+
 // MAIN
 const board = document.getElementById("board");
 const info = document.getElementById("info");
@@ -130,17 +143,24 @@ document.addEventListener("mouseup", () => {
 
 });
 document.getElementById("newShipBtn").onclick = () => {
-  const cls = Object.keys(CLASSES)[Math.floor(Math.random() * 3)];
+  toggleDisplay("newShipBox")
+}
+document.getElementById("shipCreateBtn").onclick = () => {
+  const selectedshipType = shipDropdown.value;
+
+  toggleDisplay("newShipBox")
 
   const ship = {
     id: nextShipId++,
     x: 300,
     y: 300,
-    class: cls
+    class: selectedshipType
   };
+
 
   ships.push(ship);
   createShipElement(ship);
+  selectShip(ship);
 
   socket.send(JSON.stringify({
   type: "stateUpdate",
@@ -151,6 +171,7 @@ document.getElementById("newShipBtn").onclick = () => {
   }
   }));
 };
+
 
 document.getElementById("deleteShipBtn").onclick = () => {
   if (!selectedShip) return;
@@ -201,7 +222,15 @@ document.getElementById("shipAim").onclick = () => {
   clearBands();
   drawBands(selectedShip, BAND_TYPES.WEAPON);
 }
+function toggleDisplay(id) {
+  const el = document.getElementById(id);
 
+  if (el.style.display === "none" || el.style.display === "") {
+    el.style.display = "inline";
+  } else {
+    el.style.display = "none";
+  }
+}
 
 
 function selectShip(ship) {
