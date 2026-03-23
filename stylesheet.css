@@ -119,3 +119,12 @@ z-index: 1;
   color: aliceblue;
   background-color: green;
 }
+.laserCursor {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 10px red;
+}

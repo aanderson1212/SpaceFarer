@@ -14,6 +14,9 @@
   <button id="shipAim">Show Selected Ship's Weapon Bands</button>
   <button id="toggleWepBandsBtn">Show All Weapon Bands</button>
   <button id="clearBandsBtn">Clear Bands</button>
+  <hr>
+  <button id="laserBtn">Laser Pointer</button>
+
 </div>
 
 <div id="newShipBox" style="left: 300px;">
@@ -34,15 +37,25 @@
 
 <script>
 const socket = new WebSocket("192.168.1.17:8080");
+
+let clientId = null;
+
 socket.onmessage = event => {
   const data = JSON.parse(event.data);
 
   if (data.type === "init") {
+    clientId = data.id
+    if (debug) {
+      debugInfo.textContent = "Client ID: " + clientId;
+    }
     loadStateFromServer(data.state);
   }
 
   if (data.type === "stateUpdate") {
     loadStateFromServer(data.state);
+  }
+  if (data.type === "cursor") {
+    drawCursor(data);
   }
 };
 function loadStateFromServer(state) {
@@ -82,6 +95,8 @@ const BAND_LABELS = [
   "Extreme"
 ];
 
+const cursors = {};
+
 const BAND_SIZE = 50; 
 
 
@@ -96,13 +111,16 @@ let showWepBands = false;
 let bandMax = 5
 let nextShipId = 4;
 
+let laserMode = false;
+
 
 const BAND_TYPES = {
   MOVE: "move",
   WEAPON: "weapon"
 };
 
-const shipDropdown = document.getElementById("shipType")
+const shipDropdown = document.getElementById("shipType");
+const laserDel = document.getElementById("laserBtn");
 
 // MAIN START
 const board = document.getElementById("board");
@@ -110,10 +128,9 @@ const info = document.getElementById("info");
 const debugInfo = document.getElementById("debugInfo");
 
 // DEBUG //////////////////////////
+let debug = true
 
-let debug = false // should be false
-
-if (debug === false){
+if (!debug){
   debugInfo.style.display = "none"
 }
 ///////////////////////////////////
@@ -121,6 +138,16 @@ if (debug === false){
 // EVENTS
 
 document.addEventListener("mousemove", e => {
+  //Laser Mode
+  if (laserMode) {
+    socket.send(JSON.stringify({
+      type: "cursor",
+      x: e.clientX,
+      y: e.clientY
+    }));
+  }
+
+
   if (!dragging || !selectedShip) return;
 
   selectedShip.el.style.left = e.clientX + "px";
@@ -208,6 +235,10 @@ document.getElementById("shipAim").onclick = () => {
   clearBands();
   drawBands(selectedShip, BAND_TYPES.WEAPON);
 }
+document.getElementById("laserBtn").onclick = () => {
+  laserMode = !laserMode;
+  console.log("Laser Mode: " + laserMode)
+};
 // MAIN END
 
 function toggleDisplay(id) {
@@ -306,6 +337,19 @@ function redrawAllBands() {
   });
 }
 
+function drawCursor(data) {
+  let cursor = cursors[data.id];
+
+  if (!cursor) {
+    cursor = document.createElement("div");
+    cursor.className = "laserCursor";
+    document.body.appendChild(cursor);
+    cursors[data.id] = cursor;
+  }
+
+  cursor.style.left = data.x + "px";
+  cursor.style.top = data.y + "px";
+}
 function clearBands() {
   bands.forEach(b => b.remove());
   bands = [];

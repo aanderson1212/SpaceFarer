@@ -12,6 +12,7 @@ let gameState = {
   showWepBands: false
 };
 
+const clients = new Map();
 
 const server = http.createServer((req, res) => {
   let filePath = req.url === "/" ? "/index.html" : req.url;
@@ -43,17 +44,23 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", ws => {
+  const id = crypto.randomUUID();
+  clients.set(ws, id);
   console.log("Player Connected")
+
   ws.send(JSON.stringify({
     type: "init",
-    state: gameState
+    state: gameState,
+    id: id
   }));
 
   ws.on("message", msg => {
     const data = JSON.parse(msg);
+    data.id = id
 
     if (data.type === "stateUpdate") {
       gameState = data.state;
+      console.log(id + " sent update");
 
       // Broadcast
       wss.clients.forEach(client => {
@@ -65,8 +72,24 @@ wss.on("connection", ws => {
         }
       });
     }
+    if (data.type === "cursor") {
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "cursor",
+            id: id,
+            x: data.x,
+            y: data.y
+          }));
+        }
+      });
+    }
+  });
+  ws.on("close", () => {
+    clients.delete(ws);
   });
 });
+
 
 server.listen(8080, () => {
   console.log("Server running at http://localhost:8080");
