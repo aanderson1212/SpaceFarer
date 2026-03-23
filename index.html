@@ -38,15 +38,24 @@
 <script>
 const socket = new WebSocket("192.168.1.17:8080");
 
+const laserDel = document.getElementById("laserBtn");
+const debugInfo = document.getElementById("debugInfo");
+
+
+
 let clientId = null;
+let isHost = false;
 
 socket.onmessage = event => {
   const data = JSON.parse(event.data);
 
   if (data.type === "init") {
     clientId = data.id
+    if (data.hostId === clientId){
+      isHost = true;
+    }
     if (debug) {
-      debugInfo.textContent = "Client ID: " + clientId;
+      debugInfo.textContent = "Client ID: " + clientId + " | Host: " + data.hostId;
     }
     loadStateFromServer(data.state);
   }
@@ -56,6 +65,13 @@ socket.onmessage = event => {
   }
   if (data.type === "cursor") {
     drawCursor(data);
+  }
+  if (data.type == "cursorDel"){
+    Object.values(cursors).forEach(cursor => cursor.remove());
+    
+    for (let id in cursors) {
+      delete cursors[id];
+    }
   }
 };
 function loadStateFromServer(state) {
@@ -120,12 +136,10 @@ const BAND_TYPES = {
 };
 
 const shipDropdown = document.getElementById("shipType");
-const laserDel = document.getElementById("laserBtn");
 
 // MAIN START
 const board = document.getElementById("board");
 const info = document.getElementById("info");
-const debugInfo = document.getElementById("debugInfo");
 
 // DEBUG //////////////////////////
 let debug = true
@@ -236,7 +250,14 @@ document.getElementById("shipAim").onclick = () => {
   drawBands(selectedShip, BAND_TYPES.WEAPON);
 }
 document.getElementById("laserBtn").onclick = () => {
+  if (!isHost) return;
   laserMode = !laserMode;
+
+  if (!laserMode) {
+    socket.send(JSON.stringify({
+      type: "cursorDel"
+    }));
+  };
   console.log("Laser Mode: " + laserMode)
 };
 // MAIN END

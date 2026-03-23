@@ -5,12 +5,15 @@ const path = require("path");
 const WebSocket = require("ws");
 
 const ROOT = path.join(__dirname, "..");
+const open = (...args) => import('open').then(mod => mod.default(...args));
 
 let gameState = {
   ships: [],
   showAllBands: false,
   showWepBands: false
 };
+
+let hostId = null;
 
 const clients = new Map();
 
@@ -48,10 +51,16 @@ wss.on("connection", ws => {
   clients.set(ws, id);
   console.log("Player Connected")
 
+  if (!hostId){
+    hostId = id;
+    console.log("Host assigned: " + hostId)
+  }
+
   ws.send(JSON.stringify({
     type: "init",
     state: gameState,
-    id: id
+    id: id,
+    hostId: hostId
   }));
 
   ws.on("message", msg => {
@@ -84,13 +93,24 @@ wss.on("connection", ws => {
         }
       });
     }
+    if (data.type === "cursorDel") {
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "cursorDel",
+          }));
+        }
+      });
+    }
   });
   ws.on("close", () => {
     clients.delete(ws);
   });
 });
 
-
 server.listen(8080, () => {
-  console.log("Server running at http://localhost:8080");
+  const url = "http://localhost:8080";
+  console.log("Server running at " + url);
+
+ open(url); 
 });
